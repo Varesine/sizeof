@@ -3,7 +3,7 @@ CFLAGS ?= -O3 -Wall -Wextra -pedantic -std=c11 -pthread
 PREFIX ?= $(HOME)/.local
 BINDIR ?= $(PREFIX)/bin
 
-SRC = src/main.c src/scanner.c src/utils.c src/progress.c
+SRC = src/main.c src/scanner.c src/utils.c src/progress.c src/cmd_ls.c
 OBJ = $(SRC:.c=.o)
 TARGET = bin/sizeof
 

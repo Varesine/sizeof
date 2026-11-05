@@ -104,4 +104,33 @@ if [ "$PROG_OUT" != "$NOPROG_OUT" ]; then
 fi
 echo "PASS: Progress flags --progress and --no-progress behave identically on stdout"
 
+# Test 12: sizeof ls listing
+LS_OUT=$($BIN ls "$TESTDIR")
+if [[ "$LS_OUT" != *"SIZE"* ]] || [[ "$LS_OUT" != *"TYPE"* ]] || [[ "$LS_OUT" != *"file_100k.bin"* ]]; then
+    echo "FAIL: sizeof ls missing expected table columns or entries"
+    exit 1
+fi
+echo "PASS: sizeof ls basic listing"
+
+# Test 13: sizeof ls -top 2 limits results and sorts descending
+TOP2_OUT=$($BIN ls -top 2 "$TESTDIR")
+if [[ "$TOP2_OUT" != *"Top 2 of"* ]]; then
+    echo "FAIL: sizeof ls -top 2 should state 'Top 2 of'"
+    exit 1
+fi
+# The 100k file must appear in top 2, empty file (0 bytes) should not
+if [[ "$TOP2_OUT" != *"file_100k.bin"* ]]; then
+    echo "FAIL: top 2 should contain file_100k.bin"
+    exit 1
+fi
+echo "PASS: sizeof ls -top 2 filters and sorts properly"
+
+# Test 14: sizeof ls -top 2 JSON output
+JSON_LS=$($BIN ls --json -top 2 "$TESTDIR")
+if [[ "$JSON_LS" != *"apparent_size_bytes"* ]] || [[ "$JSON_LS" != *"name"* ]]; then
+    echo "FAIL: sizeof ls JSON output invalid"
+    exit 1
+fi
+echo "PASS: sizeof ls -top 2 JSON output valid"
+
 echo "=== All Tests Passed Successfully! ==="

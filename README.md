@@ -18,6 +18,8 @@ When calculating the size of a folder, `sizeof` utilizes a multithreaded worker 
   - `-s`, `--short`: Concise human-readable string (e.g. `1.45 GB`).
   - `-v`, `--verbose`: Full breakdown of files, directories, symlinks, disk usage, and duration.
   - `--json`: Machine-readable JSON output.
+- **Interactive Progress Bar**: Live animated terminal spinner & bouncing block (`█` / `░`) displaying real-time size and item counts.
+- **`sizeof ls` Listing & Top-N Filtering**: List all files and folders sorted descending by size, with `-top <N>` support to find the largest disk space consumers.
 - **Cross-Shell PATH Integration**: Ready to run directly from `fish`, `zsh`, and `bash`.
 
 ---
@@ -51,6 +53,18 @@ sizeof
 
 # Multiple files or folders
 sizeof file1.txt folder1 file2.bin
+
+# List folder contents sorted by size (largest first)
+sizeof ls
+
+# Show the top 3 largest files/folders
+sizeof ls -top 3
+
+# Show top 5 largest items in a specific directory
+sizeof ls -top 5 ~/Downloads
+
+# Show smallest items first (reverse sort)
+sizeof ls -r -top 5
 
 # Output only raw byte count
 sizeof -b /some/folder

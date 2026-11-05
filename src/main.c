@@ -2,6 +2,7 @@
 #include "scanner.h"
 #include "utils.h"
 #include "progress.h"
+#include "cmd_ls.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,9 +37,13 @@ static void print_version(void) {
 }
 
 static void print_help(const char *prog_name) {
-    printf("Usage: %s [OPTIONS] [PATH...]\n\n", prog_name);
+    printf("Usage: %s [OPTIONS] [PATH...]\n", prog_name);
+    printf("       %s ls [OPTIONS] [PATH]\n\n", prog_name);
     printf("Calculate and display the total size of files or directories.\n");
     printf("When given a folder, multithreading is used for high performance.\n\n");
+    printf("Subcommands:\n");
+    printf("  ls [OPTIONS] [PATH]    List contents of PATH sorted by size (largest first)\n");
+    printf("                         Supports -top <N> to view the top N files/folders\n\n");
     printf("Arguments:\n");
     printf("  PATH                   File or directory to inspect (defaults to current directory '.')\n\n");
     printf("Options:\n");
@@ -62,6 +67,9 @@ static void print_help(const char *prog_name) {
     printf("Examples:\n");
     printf("  sizeof some.file\n");
     printf("  sizeof /some/folder\n");
+    printf("  sizeof ls\n");
+    printf("  sizeof ls -top 3\n");
+    printf("  sizeof ls -top 5 ~/Downloads\n");
     printf("  sizeof -v ~/Documents\n");
     printf("  sizeof -b large_file.iso\n");
     printf("  sizeof file1.txt dir1 file2.bin\n");
@@ -215,6 +223,11 @@ static void print_result(const char *path, const ScanResult *res, const Config *
 }
 
 int main(int argc, char *argv[]) {
+    /* Dispatch 'ls' subcommand */
+    if (argc >= 2 && strcmp(argv[1], "ls") == 0) {
+        return cmd_ls(argc - 1, argv + 1);
+    }
+
     Config cfg;
     memset(&cfg, 0, sizeof(cfg));
     cfg.format = OUTPUT_DEFAULT;
