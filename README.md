@@ -24,7 +24,29 @@ When calculating the size of a folder, `sizeof` utilizes a multithreaded worker 
 
 ---
 
-## Installation & Building
+## Quick Install
+
+To build and install `sizeof` automatically (including compiler verification and shell PATH configuration):
+
+```bash
+./install.sh
+```
+
+Or for system-wide installation:
+
+```bash
+./install.sh --system
+```
+
+To uninstall:
+
+```bash
+./install.sh --uninstall
+```
+
+---
+
+## Manual Building & Installation
 
 ```bash
 # Build binary
@@ -33,7 +55,7 @@ make
 # Run test suite
 make test
 
-# Install to ~/.local/bin (already in PATH)
+# Install to ~/.local/bin
 make install
 ```
 
