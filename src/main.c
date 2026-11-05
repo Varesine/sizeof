@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "scanner.h"
 #include "utils.h"
+#include "progress.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +52,8 @@ static void print_help(const char *prog_name) {
     printf("  -v, --verbose          Display detailed breakdown (files, dirs, time, disk vs apparent)\n");
     printf("  -t, --threads NUM      Set number of worker threads (default: hardware CPU count)\n");
     printf("  -x, --one-file-system  Do not cross filesystem mount boundaries\n");
+    printf("      --progress         Show live animated progress bar during folder scanning\n");
+    printf("      --no-progress      Disable progress bar\n");
     printf("      --si               Use decimal 1000-based units (kB, MB, GB) instead of 1024\n");
     printf("      --no-color         Disable colored output\n");
     printf("      --json             Output results as JSON\n");
@@ -238,8 +241,12 @@ int main(int argc, char *argv[]) {
         {"json",            no_argument,       0, 1002},
         {"help",            no_argument,       0, 'h'},
         {"version",         no_argument,       0, 1003},
+        {"progress",        no_argument,       0, 1004},
+        {"no-progress",     no_argument,       0, 1005},
         {0, 0, 0, 0}
     };
+
+    int progress_opt = -1; /* -1: auto, 0: disabled, 1: enabled */
 
     int opt;
     while ((opt = getopt_long(argc, argv, "bkmsgdavxt:h", long_options, NULL)) != -1) {
@@ -296,6 +303,12 @@ int main(int argc, char *argv[]) {
             case 1003:
                 print_version();
                 return 0;
+            case 1004:
+                progress_opt = 1;
+                break;
+            case 1005:
+                progress_opt = 0;
+                break;
             default:
                 fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
                 return 1;
@@ -320,8 +333,24 @@ int main(int argc, char *argv[]) {
     uint64_t total_dirs = 0;
     int exit_code = 0;
 
+    bool progress_enabled = false;
+    if (progress_opt == 1) {
+        progress_enabled = true;
+    } else if (progress_opt == 0) {
+        progress_enabled = false;
+    } else {
+        /* Auto: enable if stderr is a tty and not using raw bytes or json output */
+        progress_enabled = isatty(STDERR_FILENO) &&
+                           (cfg.format != OUTPUT_BYTES) &&
+                           (cfg.format != OUTPUT_JSON);
+    }
+
     for (int i = 0; i < num_paths; i++) {
         const char *p = paths[i];
+        ProgressState ps;
+        progress_init(&ps, progress_enabled, cfg.color, cfg.si_units);
+        cfg.scan_opts.progress = &ps;
+
         ScanResult res;
         if (!scan_path(p, &cfg.scan_opts, &res)) {
             fprintf(stderr, "sizeof: cannot access '%s': No such file or directory\n", p);

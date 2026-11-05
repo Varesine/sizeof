@@ -3,6 +3,7 @@
 
 #include "scanner.h"
 #include "utils.h"
+#include "progress.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -136,6 +137,9 @@ static void *scanner_worker(void *arg) {
     ScannerContext *ctx = (ScannerContext *)arg;
     ThreadLocalStats local_stats = {0};
     char *current_path = NULL;
+    uint64_t delta_apparent = 0;
+    uint64_t delta_disk = 0;
+    uint64_t delta_items = 0;
 
     while (1) {
         /* Grab a path from the queue if we don't already hold one */
@@ -225,6 +229,22 @@ static void *scanner_worker(void *arg) {
             local_stats.apparent_size += (uint64_t)st.st_size;
             local_stats.disk_size += (uint64_t)st.st_blocks * 512;
 
+            /* Progress accounting batching */
+            delta_apparent += (uint64_t)st.st_size;
+            delta_disk     += (uint64_t)st.st_blocks * 512;
+            delta_items++;
+
+            if (delta_items >= 128) {
+                if (ctx->opts && ctx->opts->progress) {
+                    atomic_fetch_add_explicit(&ctx->opts->progress->apparent_size, delta_apparent, memory_order_relaxed);
+                    atomic_fetch_add_explicit(&ctx->opts->progress->disk_size, delta_disk, memory_order_relaxed);
+                    atomic_fetch_add_explicit(&ctx->opts->progress->items_count, delta_items, memory_order_relaxed);
+                }
+                delta_apparent = 0;
+                delta_disk = 0;
+                delta_items = 0;
+            }
+
             if (S_ISDIR(st.st_mode)) {
                 local_stats.dir_count++;
 
@@ -258,6 +278,18 @@ static void *scanner_worker(void *arg) {
         }
 
         closedir(dir);
+
+        if (delta_items > 0) {
+            if (ctx->opts && ctx->opts->progress) {
+                atomic_fetch_add_explicit(&ctx->opts->progress->apparent_size, delta_apparent, memory_order_relaxed);
+                atomic_fetch_add_explicit(&ctx->opts->progress->disk_size, delta_disk, memory_order_relaxed);
+                atomic_fetch_add_explicit(&ctx->opts->progress->items_count, delta_items, memory_order_relaxed);
+            }
+            delta_apparent = 0;
+            delta_disk = 0;
+            delta_items = 0;
+        }
+
         free(current_path);
         current_path = NULL;
 
@@ -398,6 +430,11 @@ bool scan_path(const char *path, const ScanOptions *opts, ScanResult *result) {
         return false;
     }
 
+    /* Start background progress indicator if enabled */
+    if (opts && opts->progress && opts->progress->enabled) {
+        progress_start(opts->progress);
+    }
+
     for (int i = 0; i < num_threads; i++) {
         pthread_create(&threads[i], NULL, scanner_worker, &ctx);
     }
@@ -405,6 +442,11 @@ bool scan_path(const char *path, const ScanOptions *opts, ScanResult *result) {
     /* Wait for all workers to complete */
     for (int i = 0; i < num_threads; i++) {
         pthread_join(threads[i], NULL);
+    }
+
+    /* Stop progress indicator and erase progress line */
+    if (opts && opts->progress && opts->progress->enabled) {
+        progress_stop(opts->progress);
     }
 
     free(threads);

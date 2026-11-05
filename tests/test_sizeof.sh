@@ -95,4 +95,13 @@ if [ "$LINE_COUNT" -lt 2 ]; then
 fi
 echo "PASS: Multiple path inputs handled"
 
+# Test 11: Progress flags (--progress and --no-progress)
+PROG_OUT=$($BIN --progress -s "$TESTDIR")
+NOPROG_OUT=$($BIN --no-progress -s "$TESTDIR")
+if [ "$PROG_OUT" != "$NOPROG_OUT" ]; then
+    echo "FAIL: Output mismatch between --progress and --no-progress"
+    exit 1
+fi
+echo "PASS: Progress flags --progress and --no-progress behave identically on stdout"
+
 echo "=== All Tests Passed Successfully! ==="

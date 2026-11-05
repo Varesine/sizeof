@@ -4,11 +4,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include "progress.h"
 
 typedef struct {
     int num_threads;
     bool one_file_system;
     bool verbose;
+    ProgressState *progress;
 } ScanOptions;
 
 typedef struct {
